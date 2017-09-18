@@ -2,19 +2,16 @@
   <div>
     <div class="peer-container">
       <div class="local-peer">
+        Local peer
         <video ref="localPeer" autoplay></video>
         <textarea ref="loc" cols="30" rows="5"></textarea>
         <button @click="wsConn1">Connect</button>
       </div>
       <div class="remote-peer">
+        Remote peer
         <video ref="remotePeer" autoplay></video>
         <textarea ref="rmt"cols="30" rows="5"></textarea>
         <button @click="wsConn2">Connect</button>
-      </div>
-      <div class="disabled-peer">
-        <video ref="disabledPeer" autoplay></video>
-        <textarea ref="dsbl" cols="30" rows="5"></textarea>
-        <button @click="wsConn3">Connect</button>
       </div>
       <div>
         <!--<button ref="startButton" class="my-btn btn-start" @click="getStream">Start</button>-->
@@ -40,8 +37,8 @@ export default {
         audio: true,
       },
       sdpConstraints: {
-        OfferToReceiveAudio: true,
-        OfferToReceiveVideo: true,
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
       },
       peerConnConfig: {
         iceServers: [{ url: 'stun:stun.l.google.com:19302' }],
@@ -60,8 +57,8 @@ export default {
   created() {
   },
   methods: {
-    logTrace(msg) {
-      console.log(`${(performance.now() / 1000).toFixed(3)} : ${msg}`);
+    logTrace(msg, obj) {
+      console.log(`${(performance.now() / 1000).toFixed(3)} : ${msg}`, obj);
     },
     setUpAudio(stream) {
       window.AudioContext = window.AudioContext || window.webkitAudioContext();
@@ -135,60 +132,64 @@ export default {
         this.localPC.onicecandidate = (event) => {
           this.logTrace('on Ice candidate event');
           if (event.candidate) {
-            this.sendMessage({
+            this.sendLocalMessage({
               type: 'localIceCandidate',
               label: event.candidate.sdpMLineIndex,
               id: event.candidate.sdpMid,
               candidate: event.candidate.candidate,
-              toUser: this.remoteUser,
             });
           } else {
             this.logTrace('End of candidates');
           }
         };
+        this.localStream.getTracks().forEach(
+          track => this.localPC.addTrack(track, this.localStream),
+        );
         this.logTrace('Creating offer ...');
-        this.localPC.createOffer()
+        this.localPC.createOffer(
+          this.sdpConstraints,
+        )
           .then(this.onLocalSessionCreated)
           .catch(this.errorCallback);
       } else if (type === 'remote') {
         this.remotePC = new RTCPeerConnection(config);
-        this.logTrace(`Created remote peer connection: ${this.remotePC}`);
+        this.logTrace('Created remote peer connection:', this.remotePC);
         this.remotePC.onicecandidate = (event) => {
           this.logTrace('on Ice candidate event');
           if (event.candidate) {
-            this.sendMessage({
+            this.sendRemoteMessage({
               type: 'remoteIceCandidate',
               label: event.candidate.sdpMLineIndex,
               id: event.candidate.sdpMid,
               candidate: event.candidate.candidate,
-              toUser: this.localUser,
             });
           } else {
             this.logTrace('End of candidates');
           }
         };
+        this.remotePC.ontrack = this.gotRemoteStream;
       }
     },
     onLocalSessionCreated(desc) {
-      this.logTrace(`Local session created ${desc}`);
+      this.logTrace('Local session created', desc);
       this.localPC.setLocalDescription(desc, () => {
-        this.logTrace(`sending local description ${this.localPC.localDescription}`);
+        this.logTrace('sending local description', this.localPC.localDescription);
         this.sendLocalMessage(desc);
       }, this.errorCallback);
     },
     onRemoteSessionCreated(desc) {
-      this.logTrace(`Remote session created ${desc}`);
+      this.logTrace('Remote session created', desc);
       this.remotePC.setLocalDescription(desc, () => {
-        this.logTrace(`sending remote description ${this.remotePC.localDescription}`);
+        this.logTrace('sending remote description', this.remotePC.localDescription);
         this.sendRemoteMessage(desc);
       }, this.errorCallback);
     },
     errorCallback(e) {
-      this.logTrace(`Reeeejected! ${e}`);
+      this.logTrace('Reeeejected!', e);
     },
     successLocalCallback(stream) {
       this.logTrace('Connected to media devices');
-      this.$refs.localPeer.src = window.URL.createObjectURL(stream);
+//      this.$refs.localPeer.src = window.URL.createObjectURL(stream);
       this.setUpAudio(stream);
       this.localStream = stream;
     },
@@ -198,11 +199,15 @@ export default {
     },
     getRemoteStream() {
       this.logTrace('Getting user media devices ...');
-      navigator.getUserMedia(this.constraints, () => {}, this.errorCallback);
+//      navigator.getUserMedia(this.constraints, () => {}, this.errorCallback);
+    },
+    gotRemoteStream(event) {
+      this.$refs.remotePeer.srcObject = event.streams[0];
+      this.logTrace('Remote peer received stream');
     },
     wsConn1() {
-      this.localWS = new WebSocket(`ws://localhost:8000/${this.localUser}`);
-      this.remoteWS = new WebSocket(`ws://localhost:8000/${this.remoteUser}`);
+      this.remoteWS = new WebSocket(`ws://localhost:9000/${this.remoteUser}`);
+      this.localWS = new WebSocket(`ws://localhost:9000/${this.localUser}`);
       this.wsLocalConnection();
       this.wsRemoteConnection();
       this.getLocalStream();
@@ -210,9 +215,6 @@ export default {
     wsConn2() {
 //      this.remoteWS = new WebSocket(`ws://localhost:8000/${this.remoteUser}`);
       this.getRemoteStream();
-    },
-    wsConn3() {
-      this.websocket = new WebSocket(`ws://localhost:8000/${this.disabledUser}`);
     },
     sendLocalMessage(message) {
       this.localWS.send(JSON.stringify(message));
@@ -237,12 +239,14 @@ export default {
         }
         if (data.type === 'localIceCandidate') {
           this.remotePC.addIceCandidate(new RTCIceCandidate({ candidate: data.candidate }));
+          this.logTrace('added ice candidate to remote peer', this.remotePC);
         }
 //        if (data.type === 'remoteIceCandidate') {
 //          this.localPC.addIceCandidate(new RTCIceCandidate({ candidate: data.candidate }));
 //        }
         if (data.type === 'offer') {
           this.logTrace('Got offer, sending answer to remote peer');
+          console.log(this.remotePC);
           this.remotePC.setRemoteDescription(
             new RTCSessionDescription(data),
             () => {},
@@ -278,6 +282,7 @@ export default {
 //        }
         if (data.type === 'remoteIceCandidate') {
           this.localPC.addIceCandidate(new RTCIceCandidate({ candidate: data.candidate }));
+          this.logTrace('added ice candidate to local peer', this.localPC);
         }
 //        if (data.type === 'offer') {
 //          this.logTrace('Got offer, sending answer to remote peer');

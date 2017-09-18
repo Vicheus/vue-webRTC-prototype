@@ -26,11 +26,11 @@ wss.on('connection', (ws, req) => {
     const message = JSON.parse(msg);
     if (message.type === 'localIceCandidate') {
       console.log(msg);
-      users[message.toUser].send(msg);
+      wss.broadcast(msg);
     }
     if (message.type === 'remoteIceCandidate') {
       console.log(msg);
-      users[message.toUser].send(msg);
+      wss.broadcast(msg);
     }
     if (message.type === 'offer') {
       console.log(msg);
