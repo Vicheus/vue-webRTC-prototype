@@ -2,12 +2,11 @@
   <div>
     <div class="peer-container">
       <div class="local-peer">
-        Local peer
         <video ref="localPeer" autoplay></video>
-        <button @click="wsConn1">Connect</button>
+        <button @click="wsConn1">Call</button>
+        <button @click="hangupCall">Hangup</button>
       </div>
       <div class="remote-peer">
-        Remote peer
         <video ref="remotePeer" autoplay></video>
       </div>
     </div>
@@ -35,6 +34,7 @@
           }],
         },
         localStream: undefined,
+        remoteStream: undefined,
         localPC: undefined,
         remotePC: undefined,
         websocket: undefined,
@@ -42,7 +42,6 @@
         remoteWS: undefined,
         localUser: 'user1',
         remoteUser: 'user2',
-        disabledUser: 'user3',
       };
     },
     created() {
@@ -121,7 +120,7 @@
           this.localPC = new RTCPeerConnection(config);
           this.logTrace(`Created local peer connection: ${this.localPC}`);
           this.localPC.addStream(this.localStream);
-          console.log('Added stream to local pc', this.remotePC);
+          this.logTrace('Added stream to local pc', this.remotePC);
           this.localPC.onicecandidate = (event) => {
             this.logTrace('on Ice candidate event');
             if (event.candidate) {
@@ -135,6 +134,7 @@
               this.logTrace('End of candidates');
             }
           };
+          this.localPC.onaddstream = this.gotLocalStream;
           this.logTrace('Creating offer ...');
           this.localPC.createOffer(
             this.sdpConstraints,
@@ -144,6 +144,8 @@
         } else if (type === 'remote') {
           this.remotePC = new RTCPeerConnection(config);
           this.logTrace('Created remote peer connection:', this.remotePC);
+          this.remotePC.addStream(this.remoteStream);
+          this.logTrace('Added stream to remote pc', this.remotePC);
           this.remotePC.onicecandidate = (event) => {
             this.logTrace('on Ice candidate event');
             if (event.candidate) {
@@ -157,7 +159,6 @@
               this.logTrace('End of candidates');
             }
           };
-          this.remotePC.ontrack = this.gotRemoteStream;
           this.remotePC.onaddstream = this.gotRemoteStream;
         }
       },
@@ -180,16 +181,18 @@
       },
       successLocalCallback(stream) {
         this.logTrace('Connected to media devices');
-        this.$refs.localPeer.src = window.URL.createObjectURL(stream);
         this.setUpAudio(stream);
         this.localStream = stream;
-//        this.localStream.getTracks().forEach(
-//          track => this.localPC.addTrack(track, this.localStream),
-//        );
         this.remoteWS = new WebSocket(`ws://localhost:8000/${this.remoteUser}`);
         this.localWS = new WebSocket(`ws://localhost:8000/${this.localUser}`);
         this.wsLocalConnection();
         this.wsRemoteConnection();
+      },
+      successRemoteCallback(stream) {
+//        todo: resolve remotePC after remote stream created
+        this.logTrace('Connected to media devices');
+        this.setUpAudio(stream);
+        this.remoteStream = stream;
       },
       getLocalStream() {
         this.logTrace('Getting user media devices ...');
@@ -197,11 +200,22 @@
           .then(this.successLocalCallback)
           .catch(this.errorCallback);
       },
+      getRemoteStream() {
+        this.logTrace('Getting user media devices ...');
+        navigator.mediaDevices.getUserMedia(this.constraints)
+          .then(this.successRemoteCallback)
+          .catch(this.errorCallback);
+      },
       gotRemoteStream(event) {
         this.logTrace('Remote peer received stream');
         this.$refs.remotePeer.srcObject = event.stream;
       },
+      gotLocalStream(event) {
+        this.logTrace('Local peer received stream');
+        this.$refs.localPeer.srcObject = event.stream;
+      },
       wsConn1() {
+        this.getRemoteStream();
         this.getLocalStream();
       },
       sendLocalMessage(message) {
