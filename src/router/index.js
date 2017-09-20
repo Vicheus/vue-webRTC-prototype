@@ -23,6 +23,5 @@ export default new Router({
       name: 'Father',
       component: Father,
     },
-
   ],
 });

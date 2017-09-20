@@ -2,7 +2,8 @@
   <div class="screen">
     <div class="side-controls">
       <div class="controls-container">
-        <div :class="{contacts: contacts.length < 5 || !connectionEstablished, 'contacts-small': contacts.length >= 5 || connectionEstablished}">
+        <div
+          :class="{contacts: contacts.length < 5 || !connectionEstablished, 'contacts-small': contacts.length >= 5 || connectionEstablished}">
           <div :class="{contact: contacts.length < 5 || !connectionEstablished,
            'contact-small': contacts.length >= 5 || connectionEstablished,
             active: isActive[contact.name]}"
@@ -19,21 +20,21 @@
           </div>
         </div>
       </div>
-      </div>
+    </div>
 
     <div class="remote-peer">
       <video ref="remotePeer" autoplay></video>
     </div>
 
     <!--<div class="peer-container">-->
-      <!--<div class="local-peer">-->
-        <!--<video ref="localPeer" autoplay></video>-->
-        <!--<button @click="wsConn1">Call</button>-->
-        <!--<button @click="hangupCall">Hangup</button>-->
-      <!--</div>-->
-      <!--<div class="remote-peer">-->
-        <!--<video ref="remotePeer" autoplay></video>-->
-      <!--</div>-->
+    <!--<div class="local-peer">-->
+    <!--<video ref="localPeer" autoplay></video>-->
+    <!--<button @click="wsConn1">Call</button>-->
+    <!--<button @click="hangupCall">Hangup</button>-->
+    <!--</div>-->
+    <!--<div class="remote-peer">-->
+    <!--<video ref="remotePeer" autoplay></video>-->
+    <!--</div>-->
     <!--</div>-->
   </div>
 </template>
@@ -177,7 +178,7 @@
           this.localPC.onicecandidate = (event) => {
             this.logTrace('on Ice candidate event');
             if (event.candidate) {
-              this.sendLocalMessage({
+              this.sendMessage({
                 type: 'localIceCandidate',
                 label: event.candidate.sdpMLineIndex,
                 id: event.candidate.sdpMid,
@@ -219,7 +220,7 @@
         this.logTrace('Local session created', desc);
         this.localPC.setLocalDescription(desc, () => {
           this.logTrace('sending local description', this.localPC.localDescription);
-          this.sendLocalMessage(desc);
+          this.sendMessage(desc);
         }, this.errorCallback);
       },
       onRemoteSessionCreated(desc) {
@@ -274,7 +275,7 @@
         this.getRemoteStream();
         this.getLocalStream();
       },
-      sendLocalMessage(message) {
+      sendMessage(message) {
         this.localWS.send(JSON.stringify(message));
       },
       sendRemoteMessage(message) {
@@ -354,21 +355,25 @@
     background: aqua;
     display: flex;
   }
+
   .remote-peer {
     width: 100%;
     height: 100vh;
     position: relative;
   }
+
   .remote-peer > video {
     width: 100%;
     height: 100%;
     background-color: #000;
   }
+
   .side-controls {
     width: 300px;
     height: 100vh;
     background: blueviolet;
   }
+
   .controls-container {
     height: 100%;
     display: flex;
@@ -376,9 +381,11 @@
     justify-content: space-between;
     overflow: hidden;
   }
+
   .contacts {
     width: 100%;
   }
+
   .contacts-small {
     display: flex;
     flex-wrap: wrap;
@@ -386,6 +393,7 @@
     height: 300px;
     overflow: hidden;
   }
+
   .contact-small {
     display: flex;
     flex-wrap: wrap;
@@ -396,6 +404,7 @@
     height: 140px;
     margin: 5px;
   }
+
   .contact {
     margin: 5px;
     margin-bottom: 2.5px;
@@ -405,42 +414,52 @@
     background-color: #ccc;
     cursor: pointer;
   }
+
   .active {
     background-color: lightgreen;
   }
+
   .contact-small .avatar {
     width: 110px;
     height: 110px;
   }
+
   .avatar {
     width: 100px;
     height: 100px;
     display: block;
     margin: 5px;
   }
+
   .contact-small .contact-name {
     display: none;
   }
+
   .contact .contact-name {
     margin-left: 30px;
   }
+
   video {
     display: block;
   }
+
   .local-peer {
     margin: 5px;
   }
+
   .local-peer > video {
     width: 290px;
     border-radius: 5px;
     background-color: #000;
   }
+
   .hangup-call {
     margin-top: 5px;
     background-color: red;
     height: 130px;
     border-radius: 5px
   }
+
   .hangup {
     margin: 0 auto;
     display: block;
