@@ -1,41 +1,30 @@
 <template>
-  <div class="screen">
-    <div class="side-controls">
-      <div class="controls-container">
-        <div :class="{contacts: contacts.length < 5 || !connectionEstablished, 'contacts-small': contacts.length >= 5 || connectionEstablished}">
-          <div :class="{contact: contacts.length < 5 || !connectionEstablished,
+    <div class="screen">
+        <div class="side-controls">
+            <div class="controls-container">
+                <div :class="{contacts: contacts.length < 5 || !connectionEstablished, 'contacts-small': contacts.length >= 5 || connectionEstablished}">
+                    <div :class="{contact: contacts.length < 5 || !connectionEstablished,
            'contact-small': contacts.length >= 5 || connectionEstablished,
             active: isActive[contact.name]}"
-               v-for="(contact, index) in contacts"
-               :key="index" @click="call(contact)">
-            <img class="avatar" :src="contact.avatar" :alt="contact.name">
-            <div class="contact-name">{{contact.name}}</div>
-          </div>
+                         v-for="(contact, index) in contacts"
+                         :key="index" @click="call(contact)">
+                        <img class="avatar" :src="contact.avatar" :alt="contact.name">
+                        <div class="contact-name">{{contact.name}}</div>
+                    </div>
+                </div>
+                <div class="local-peer">
+                    <video ref="localPeer" autoplay></video>
+                    <div class="hangup-call" v-if="connectionEstablished">
+                        <img src="../../static/hangup.png" alt="hangup" class="hangup" @click="hangupCall">
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="local-peer">
-          <video ref="localPeer" autoplay></video>
-          <div class="hangup-call" v-if="connectionEstablished">
-            <img src="../../static/hangup.png" alt="hangup" class="hangup" @click="hangupCall">
-          </div>
-        </div>
-      </div>
-      </div>
 
-    <div class="remote-peer">
-      <video ref="remotePeer" autoplay></video>
+        <div class="remote-peer">
+            <video ref="remotePeer" autoplay></video>
+        </div>
     </div>
-
-    <!--<div class="peer-container">-->
-      <!--<div class="local-peer">-->
-        <!--<video ref="localPeer" autoplay></video>-->
-        <!--<button @click="wsConn1">Call</button>-->
-        <!--<button @click="hangupCall">Hangup</button>-->
-      <!--</div>-->
-      <!--<div class="remote-peer">-->
-        <!--<video ref="remotePeer" autoplay></video>-->
-      <!--</div>-->
-    <!--</div>-->
-  </div>
 </template>
 
 <script>
@@ -96,6 +85,8 @@
       };
     },
     created() {
+      this.localWS = new WebSocket(`ws://localhost:9000/${this.localUser}`);
+      this.wsLocalConnection();
     },
     methods: {
       logTrace(msg, obj) {
@@ -108,35 +99,6 @@
         const mediaStreamSource = audioContext.createMediaStreamSource(stream);
         mediaStreamSource.connect(audioContext.destination);
       },
-//    getLocalIceCandidate(candidate) {
-//      if (candidate) {
-//        this.remotePC.addIceCandidate(new RTCIceCandidate(candidate));
-//        this.logTrace(`Local ICE candidate: \n ${candidate}`);
-//      }
-//    },
-//    getRemoteIceCandidate(candidate) {
-//      if (candidate) {
-//        this.localPC.addIceCandidate(new RTCIceCandidate(candidate));
-//        this.logTrace(`Remote ICE candidate: \n ${candidate}`);
-//      }
-//    },
-//    addRemoteStream(event) {
-//      this.logTrace('Added remote stream');
-//      this.$refs.remotePeer.src = window.URL.createObjectURL(event.stream);
-//    },
-//    getLocalDescription(description) {
-//      this.localPC.setLocalDescription(description);
-//      this.logTrace(`Offer from local peer connection ${description.sdp}`);
-//      this.remotePC.setRemoteDescription(description);
-//      this.remotePC.createAnswer()
-//        .then(desc => this.getRemoteDescription(desc))
-//        .catch(error => this.failureCallback(error));
-//    },
-//    getRemoteDescription(description) {
-//      this.remotePC.setLocalDescription(description);
-//      this.logTrace(`Answer from remote peer connection ${description.sdp}`);
-//      this.localPC.setRemoteDescription(description);
-//    },
       hangupCall() {
         this.logTrace('Cancell call');
         this.localPC.close();
@@ -144,33 +106,11 @@
         this.localPC = undefined;
         this.remotePC = undefined;
       },
-//    startCall() {
-//      this.logTrace('Start calling');
-//      if (this.localStream.getVideoTracks().length > 0) {
-//        this.logTrace('Connected to video source', this.localStream.getVideoTracks()[0].label);
-//      }
-//      if (this.localStream.getAudioTracks().length > 0) {
-//        this.logTrace('Connected to audio source', this.localStream.getAudioTracks()[0].label);
-//      }
-//
-//      this.localPC = new RTCPeerConnection(this.peerConnConfig);
-//      this.logTrace('Created local peer connection');
-//      this.localPC.onicecandidate = this.getLocalIceCandidate;
-//      this.remotePC = new RTCPeerConnection(this.peerConnConfig);
-//      this.logTrace('Created remote peer connection');
-//      this.remotePC.onicecandidate = this.getRemoteIceCandidate;
-//      this.remotePC.onaddstream = this.addRemoteStream;
-//      this.localPC.addStream(this.localStream);
-//      this.logTrace('Added local stream to local peer connection');
-//      this.localPC.createOffer()
-//        .then(description => this.getLocalDescription(description))
-//        .catch(error => this.failureCallback(error));
-//    },
       createPeerConnection(type, config) {
         this.logTrace('Creating peer connection ...');
         if (type === 'local') {
           this.localPC = new RTCPeerConnection(config);
-          this.logTrace(`Created local peer connection: ${this.localPC}`);
+          this.logTrace(`Created local peer connection: ${this.localPC}`, this.localPC);
           this.localPC.addStream(this.localStream);
           this.logTrace('Added stream to local pc', this.remotePC);
           this.connectionEstablished = true;
@@ -236,10 +176,7 @@
         this.logTrace('Connected to media devices');
         this.setUpAudio(stream);
         this.localStream = stream;
-        this.remoteWS = new WebSocket(`ws://localhost:9000/${this.remoteUser}`);
-        this.localWS = new WebSocket(`ws://localhost:9000/${this.localUser}`);
-        this.wsLocalConnection();
-        this.wsRemoteConnection();
+        this.createPeerConnection('local', this.peerConnConfig);
       },
       successRemoteCallback(stream) {
 //        todo: resolve remotePC after remote stream created
@@ -271,7 +208,6 @@
         this.isActive = {};
         this.isActive[contact.name] = true;
         this.remoteUser = contact.username;
-        this.getRemoteStream();
         this.getLocalStream();
       },
       sendLocalMessage(message) {
@@ -281,19 +217,10 @@
         this.remoteWS.send(JSON.stringify(message));
       },
       wsLocalConnection() {
-//      console.log('websocket connection opened');
-//      this.websocket.send(JSON.stringify({
-//        type: 'message',
-//        name: 'Shura',
-//        message: 'Hello',
-//        toUser: this.remoteUser,
-//      }));
-//      this.localWS.onopen = (e) => {};
         this.localWS.onmessage = (evt) => {
           const data = JSON.parse(evt.data);
           if (data.type === 'ready') {
             this.logTrace('Connection is ready');
-            this.createPeerConnection('local', this.peerConnConfig);
           }
           if (data.type === 'localIceCandidate') {
             this.remotePC.addIceCandidate(new RTCIceCandidate({ candidate: data.candidate }));
@@ -318,7 +245,6 @@
         };
       },
       wsRemoteConnection() {
-//      this.remoteWS.onopen = (e) => {};
         this.remoteWS.onmessage = (evt) => {
           const data = JSON.parse(evt.data);
           if (data.type === 'ready') {
@@ -348,104 +274,104 @@
 </script>
 
 <style scoped>
-  .screen {
-    width: 100vw;
-    height: 100vh;
-    background: aqua;
-    display: flex;
-  }
-  .remote-peer {
-    width: 100%;
-    height: 100vh;
-    position: relative;
-  }
-  .remote-peer > video {
-    width: 100%;
-    height: 100%;
-    background-color: #000;
-  }
-  .side-controls {
-    width: 300px;
-    height: 100vh;
-    background: blueviolet;
-  }
-  .controls-container {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    overflow: hidden;
-  }
-  .contacts {
-    width: 100%;
-  }
-  .contacts-small {
-    display: flex;
-    flex-wrap: wrap;
-    width: 100%;
-    height: 300px;
-    overflow: hidden;
-  }
-  .contact-small {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    background-color: #ccc;
-    border-radius: 5px;
-    width: 140px;
-    height: 140px;
-    margin: 5px;
-  }
-  .contact {
-    margin: 5px;
-    margin-bottom: 2.5px;
-    display: flex;
-    align-items: center;
-    border-radius: 5px;
-    background-color: #ccc;
-    cursor: pointer;
-  }
-  .active {
-    background-color: lightgreen;
-  }
-  .contact-small .avatar {
-    width: 110px;
-    height: 110px;
-  }
-  .avatar {
-    width: 100px;
-    height: 100px;
-    display: block;
-    margin: 5px;
-  }
-  .contact-small .contact-name {
-    display: none;
-  }
-  .contact .contact-name {
-    margin-left: 30px;
-  }
-  video {
-    display: block;
-  }
-  .local-peer {
-    margin: 5px;
-  }
-  .local-peer > video {
-    width: 290px;
-    border-radius: 5px;
-    background-color: #000;
-  }
-  .hangup-call {
-    margin-top: 5px;
-    background-color: red;
-    height: 130px;
-    border-radius: 5px
-  }
-  .hangup {
-    margin: 0 auto;
-    display: block;
-    width: 100px;
-    height: 100px;
-    transform: rotateZ(135deg);
-  }
+    .screen {
+        width: 100vw;
+        height: 100vh;
+        background: aqua;
+        display: flex;
+    }
+    .remote-peer {
+        width: 100%;
+        height: 100vh;
+        position: relative;
+    }
+    .remote-peer > video {
+        width: 100%;
+        height: 100%;
+        background-color: #000;
+    }
+    .side-controls {
+        width: 300px;
+        height: 100vh;
+        background: blueviolet;
+    }
+    .controls-container {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow: hidden;
+    }
+    .contacts {
+        width: 100%;
+    }
+    .contacts-small {
+        display: flex;
+        flex-wrap: wrap;
+        width: 100%;
+        height: 300px;
+        overflow: hidden;
+    }
+    .contact-small {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        background-color: #ccc;
+        border-radius: 5px;
+        width: 140px;
+        height: 140px;
+        margin: 5px;
+    }
+    .contact {
+        margin: 5px;
+        margin-bottom: 2.5px;
+        display: flex;
+        align-items: center;
+        border-radius: 5px;
+        background-color: #ccc;
+        cursor: pointer;
+    }
+    .active {
+        background-color: lightgreen;
+    }
+    .contact-small .avatar {
+        width: 110px;
+        height: 110px;
+    }
+    .avatar {
+        width: 100px;
+        height: 100px;
+        display: block;
+        margin: 5px;
+    }
+    .contact-small .contact-name {
+        display: none;
+    }
+    .contact .contact-name {
+        margin-left: 30px;
+    }
+    video {
+        display: block;
+    }
+    .local-peer {
+        margin: 5px;
+    }
+    .local-peer > video {
+        width: 290px;
+        border-radius: 5px;
+        background-color: #000;
+    }
+    .hangup-call {
+        margin-top: 5px;
+        background-color: red;
+        height: 130px;
+        border-radius: 5px
+    }
+    .hangup {
+        margin: 0 auto;
+        display: block;
+        width: 100px;
+        height: 100px;
+        transform: rotateZ(135deg);
+    }
 </style>
