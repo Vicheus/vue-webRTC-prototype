@@ -1,20 +1,25 @@
 <template>
   <div class="screen">
     <div class="side-controls">
-      <div class="contacts">
-        <div class="contact" v-for="(contact, index) in contacts"
-             :key="index" @click="call(contact)" :class="{active: isActive[contact.name]}">
-          <img class="avatar" :src="contact.avatar" :alt="contact.name">
-          <div class="contact-name">{{contact.name}}</div>
+      <div class="controls-container">
+        <div :class="{contacts: contacts.length < 5 || !connectionEstablished, 'contacts-small': contacts.length >= 5 || connectionEstablished}">
+          <div :class="{contact: contacts.length < 5 || !connectionEstablished,
+           'contact-small': contacts.length >= 5 || connectionEstablished,
+            active: isActive[contact.name]}"
+               v-for="(contact, index) in contacts"
+               :key="index" @click="call(contact)">
+            <img class="avatar" :src="contact.avatar" :alt="contact.name">
+            <div class="contact-name">{{contact.name}}</div>
+          </div>
+        </div>
+        <div class="local-peer">
+          <video ref="localPeer" autoplay></video>
+          <div class="hangup-call" v-if="connectionEstablished">
+            <img src="../../static/hangup.png" alt="hangup" class="hangup" @click="hangupCall">
+          </div>
         </div>
       </div>
-      <div class="local-peer">
-        <video ref="localPeer" autoplay></video>
-        <div class="hangup-call" v-if="connectionEstablished">
-          <img src="../../static/hangup.png" alt="hangup" class="hangup" @click="hangupCall">
-        </div>
       </div>
-    </div>
 
     <div class="remote-peer">
       <video ref="remotePeer" autoplay></video>
@@ -360,12 +365,33 @@
     width: 300px;
     height: 100vh;
     background: blueviolet;
+  }
+  .controls-container {
+    height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    overflow: hidden;
   }
   .contacts {
     width: 100%;
+  }
+  .contacts-small {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    height: 300px;
+    overflow: hidden;
+  }
+  .contact-small {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    background-color: #ccc;
+    border-radius: 5px;
+    width: 140px;
+    height: 140px;
+    margin: 5px;
   }
   .contact {
     margin: 5px;
@@ -379,13 +405,20 @@
   .active {
     background-color: lightgreen;
   }
+  .contact-small .avatar {
+    width: 110px;
+    height: 110px;
+  }
   .avatar {
     width: 100px;
     height: 100px;
     display: block;
     margin: 5px;
   }
-  .contact-name {
+  .contact-small .contact-name {
+    display: none;
+  }
+  .contact .contact-name {
     margin-left: 30px;
   }
   video {
@@ -395,7 +428,7 @@
     margin: 5px;
   }
   .local-peer > video {
-    width: 100%;
+    width: 290px;
     border-radius: 5px;
     background-color: #000;
   }
