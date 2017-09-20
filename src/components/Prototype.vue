@@ -1,15 +1,35 @@
 <template>
-  <div>
-    <div class="peer-container">
+  <div class="screen">
+    <div class="side-controls">
+      <div class="contacts">
+        <div class="contact" v-for="(contact, index) in contacts"
+             :key="index" @click="call(contact)" :class="{active: isActive[contact.name]}">
+          <img class="avatar" :src="contact.avatar" :alt="contact.name">
+          <div class="contact-name">{{contact.name}}</div>
+        </div>
+      </div>
       <div class="local-peer">
         <video ref="localPeer" autoplay></video>
-        <button @click="wsConn1">Call</button>
-        <button @click="hangupCall">Hangup</button>
-      </div>
-      <div class="remote-peer">
-        <video ref="remotePeer" autoplay></video>
+        <div class="hangup-call" v-if="connectionEstablished">
+          <img src="../../static/hangup.png" alt="hangup" class="hangup" @click="hangupCall">
+        </div>
       </div>
     </div>
+
+    <div class="remote-peer">
+      <video ref="remotePeer" autoplay></video>
+    </div>
+
+    <!--<div class="peer-container">-->
+      <!--<div class="local-peer">-->
+        <!--<video ref="localPeer" autoplay></video>-->
+        <!--<button @click="wsConn1">Call</button>-->
+        <!--<button @click="hangupCall">Hangup</button>-->
+      <!--</div>-->
+      <!--<div class="remote-peer">-->
+        <!--<video ref="remotePeer" autoplay></video>-->
+      <!--</div>-->
+    <!--</div>-->
   </div>
 </template>
 
@@ -42,6 +62,31 @@
         remoteWS: undefined,
         localUser: 'user1',
         remoteUser: 'user2',
+        contacts: [
+          {
+            name: 'Alex',
+            /* eslint-disable global-require */
+            avatar: require('../../static/logo.png'),
+            username: 'User2',
+          },
+          {
+            name: 'Dmytriy',
+            avatar: require('../../static/logo.png'),
+            username: 'User3',
+          },
+          {
+            name: 'Masha',
+            avatar: require('../../static/logo.png'),
+            username: 'User4',
+          },
+          {
+            name: 'Ira',
+            avatar: require('../../static/logo.png'),
+            username: 'User5',
+          },
+        ],
+        isActive: {},
+        connectionEstablished: false,
       };
     },
     created() {
@@ -121,6 +166,7 @@
           this.logTrace(`Created local peer connection: ${this.localPC}`);
           this.localPC.addStream(this.localStream);
           this.logTrace('Added stream to local pc', this.remotePC);
+          this.connectionEstablished = true;
           this.localPC.onicecandidate = (event) => {
             this.logTrace('on Ice candidate event');
             if (event.candidate) {
@@ -183,8 +229,8 @@
         this.logTrace('Connected to media devices');
         this.setUpAudio(stream);
         this.localStream = stream;
-        this.remoteWS = new WebSocket(`ws://localhost:8000/${this.remoteUser}`);
-        this.localWS = new WebSocket(`ws://localhost:8000/${this.localUser}`);
+        this.remoteWS = new WebSocket(`ws://localhost:9000/${this.remoteUser}`);
+        this.localWS = new WebSocket(`ws://localhost:9000/${this.localUser}`);
         this.wsLocalConnection();
         this.wsRemoteConnection();
       },
@@ -214,7 +260,9 @@
         this.logTrace('Local peer received stream');
         this.$refs.localPeer.srcObject = event.stream;
       },
-      wsConn1() {
+      call(contact) {
+        this.isActive = {};
+        this.isActive[contact.name] = true;
         this.getRemoteStream();
         this.getLocalStream();
       },
@@ -292,13 +340,76 @@
 </script>
 
 <style scoped>
-  .local-peer, .remote-peer {
-    display: inline-block;
+  .screen {
+    width: 100vw;
+    height: 100vh;
+    background: aqua;
+    display: flex;
   }
-
-  .local-peer > video, .remote-peer > video {
-    width: 400px;
-    height: 250px;
+  .remote-peer {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+  }
+  .remote-peer > video {
+    width: 100%;
+    height: 100%;
     background-color: #000;
+  }
+  .side-controls {
+    width: 300px;
+    height: 100vh;
+    background: blueviolet;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .contacts {
+    width: 100%;
+  }
+  .contact {
+    margin: 5px;
+    margin-bottom: 2.5px;
+    display: flex;
+    align-items: center;
+    border-radius: 5px;
+    background-color: #ccc;
+    cursor: pointer;
+  }
+  .active {
+    background-color: lightgreen;
+  }
+  .avatar {
+    width: 100px;
+    height: 100px;
+    display: block;
+    margin: 5px;
+  }
+  .contact-name {
+    margin-left: 30px;
+  }
+  video {
+    display: block;
+  }
+  .local-peer {
+    margin: 5px;
+  }
+  .local-peer > video {
+    width: 100%;
+    border-radius: 5px;
+    background-color: #000;
+  }
+  .hangup-call {
+    margin-top: 5px;
+    background-color: red;
+    height: 130px;
+    border-radius: 5px
+  }
+  .hangup {
+    margin: 0 auto;
+    display: block;
+    width: 100px;
+    height: 100px;
+    transform: rotateZ(135deg);
   }
 </style>
