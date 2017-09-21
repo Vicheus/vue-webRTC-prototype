@@ -80,10 +80,13 @@
         ],
         isActive: {},
         connectionEstablished: false,
+        websocketHost: 'ws://localhost:9000/',
+        incomingCall: 'incoming call',
+        outgoingCall: 'outgoing call',
       };
     },
     created() {
-      this.localWS = new WebSocket(`ws://localhost:9000/${this.localUser}`);
+      this.localWS = new WebSocket(`${this.websocketHost}${this.localUser}`);
       this.wsLocalConnection();
     },
     methods: {
@@ -101,8 +104,8 @@
         this.isActive = {};
         this.isActive[contact.name] = true;
         this.remoteUser = contact.username;
-        this.sendMessage({ type: 'incoming call' }, this.remoteUser);
-        this.getLocalStream('outgoing call');
+        this.sendMessage({ type: this.incomingCall }, this.remoteUser);
+        this.getLocalStream(this.outgoingCall);
       },
       getLocalStream(type) {
         this.logTrace('Getting son media devices ...');
@@ -129,13 +132,11 @@
       hangupCall() {
         this.logTrace('Cancell call');
         this.localPC.close();
-        this.remotePC.close();
         this.localPC = undefined;
-        this.remotePC = undefined;
       },
       createPeerConnection(type, config) {
         this.logTrace('Creating son peer connection ...');
-        if (type === 'outgoing call') {
+        if (type === this.outgoingCall) {
           this.localPC = new RTCPeerConnection(config);
           this.logTrace('Created son peer connection:', this.localPC);
           this.localPC.addStream(this.localStream);
@@ -159,7 +160,7 @@
           this.localPC.createOffer(this.sdpConstraints)
             .then(this.onLocalSessionCreated)
             .catch(this.errorCallback);
-        } else if (type === 'incoming call') {
+        } else if (type === this.incomingCall) {
           this.localPC = new RTCPeerConnection(config);
           this.logTrace('Created son peer connection:', this.localPC);
           this.localPC.addStream(this.localStream);
@@ -203,8 +204,8 @@
             this.logTrace('Connection is ready');
           }
           if (Object.prototype.hasOwnProperty.call(message, 'data')
-            && message.data.type === 'incoming call') {
-            this.getLocalStream('incoming call');
+            && message.data.type === this.incomingCall) {
+            this.getLocalStream(this.incomingCall);
           }
           if (Object.prototype.hasOwnProperty.call(message, 'data')
             && message.data.type === 'iceCandidate') {
