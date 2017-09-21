@@ -1,9 +1,9 @@
 {
     "name" : "Screen sharing extension",
     "author": "The App Solutions",
-    "version" : "3.4",
+    "version" : "1.0",
     "manifest_version" : 2,
-    "minimum_chrome_version": "34",
+    "minimum_chrome_version": "35",
     "description" : "Screen capturing extension",
     "homepage_url": "https://www.theappsolutions.com/",
     "background": {
@@ -20,7 +20,8 @@
         "48" : "icon.png"
     },
     "permissions": [
-        "desktopCapture"
+        "desktopCapture",
+        "tabCapture"
     ],
     "web_accessible_resources": [
         "icon.png"

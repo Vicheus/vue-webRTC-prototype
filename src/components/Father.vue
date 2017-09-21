@@ -218,7 +218,7 @@
       getScreen(sourceId) {
         this.sourceId = sourceId;
         const constraints = this.screenSharingConstraints;
-        navigator.mediaDevices.getUserMedia({ video: constraints })
+        navigator.mediaDevices.getUserMedia({ audio: false, video: constraints })
           .then((stream) => {
             this.$refs.screenSharing.src = URL.createObjectURL(stream);
           })
